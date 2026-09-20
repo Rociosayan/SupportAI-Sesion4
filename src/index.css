@@ -1,0 +1,64 @@
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --sidebar: #eff6ff;
+  --primary: #2563eb;
+  --primary-dark: #1e3a8a;
+  --primary-soft: #dbeafe;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: #bfdbfe;
+  --shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
+  --alta: #c0564a;
+  --media: #c4922a;
+  --baja: #3d8a6e;
+  --pendiente: #3b7cb8;
+  --proceso: #c4922a;
+  --resuelto: #3d8a6e;
+  --sans: "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--bg);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

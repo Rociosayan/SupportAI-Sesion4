@@ -1,0 +1,11 @@
+CURSO: Analítica de Datos con Python
+
+El curso tiene una duración total de 24 horas académicas y se desarrolla en modalidad virtual. Está dirigido a estudiantes y profesionales que desean iniciar el análisis de datos con Python.
+
+Como requisito se recomienda manejo básico de hojas de cálculo. No se exige experiencia previa programando en Python.
+
+El contenido se organiza en cuatro bloques: fundamentos de Python, manipulación de datos con pandas, visualización de datos y análisis exploratorio.
+
+La evaluación considera ejercicios prácticos durante las sesiones y un proyecto final de análisis de datos. El proyecto debe integrar limpieza, exploración, visualización e interpretación de resultados.
+
+Al completar las actividades y el proyecto final, el participante recibe una constancia de participación emitida por la institución.

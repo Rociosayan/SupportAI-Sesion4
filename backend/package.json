@@ -1,0 +1,17 @@
+{
+  "name": "supportai-backend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node --use-system-ca src/server.js",
+    "test:gemini": "node --use-system-ca src/testGemini.js",
+    "test:gemini-sin-clave": "node --use-system-ca src/testGemini.js --sin-clave",
+    "test:parse": "node src/testParseAnalysis.js",
+    "knowledge:check": "node src/checkSource.js",
+    "knowledge:index": "node --use-system-ca src/indexKnowledge.js"
+  },
+  "dependencies": {
+    "@google/genai": "^2.23.0"
+  }
+}
