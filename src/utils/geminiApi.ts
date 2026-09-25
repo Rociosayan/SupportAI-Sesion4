@@ -1,11 +1,18 @@
 import type { ImportedAnalysis } from '../components/ResultComparison'
 import type { SupportCase } from '../types/case'
+import type { RagFragment } from '../types/rag'
 
-export const BACKEND_ORIGIN = 'http://localhost:3001'
+export const BACKEND_ORIGIN = import.meta.env.DEV ? 'http://localhost:3001' : ''
 export const GEMINI_ANALYZE_URL = `${BACKEND_ORIGIN}/api/analizar`
 
+export type GeminiKnowledge = {
+  contextoSuficiente: boolean
+  fragments: RagFragment[]
+  message: string | null
+}
+
 export type GeminiAnalyzeResult =
-  | { ok: true; analysis: ImportedAnalysis }
+  | { ok: true; analysis: ImportedAnalysis; knowledge: GeminiKnowledge }
   | { ok: false; message: string }
 
 const ERROR_MESSAGES = {
@@ -68,6 +75,43 @@ export function readAnalysis(value: unknown): ImportedAnalysis | null {
   return analysis
 }
 
+function readKnowledge(value: unknown): GeminiKnowledge {
+  const empty: GeminiKnowledge = { contextoSuficiente: false, fragments: [], message: null }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return empty
+  }
+  const record = value as Record<string, unknown>
+  const fragments = Array.isArray(record.fragments)
+    ? record.fragments.flatMap((item) => {
+        if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+          return []
+        }
+        const row = item as Record<string, unknown>
+        if (
+          typeof row.source !== 'string' ||
+          typeof row.content !== 'string' ||
+          typeof row.chunkIndex !== 'number' ||
+          typeof row.score !== 'number'
+        ) {
+          return []
+        }
+        return [
+          {
+            source: row.source,
+            chunkIndex: row.chunkIndex,
+            content: row.content,
+            score: row.score,
+          },
+        ]
+      })
+    : []
+  return {
+    contextoSuficiente: record.contextoSuficiente === true && fragments.length > 0,
+    fragments,
+    message: typeof record.message === 'string' ? record.message : null,
+  }
+}
+
 export async function requestGeminiAnalysis(
   supportCase: SupportCase,
 ): Promise<GeminiAnalyzeResult> {
@@ -104,13 +148,14 @@ export async function requestGeminiAnalysis(
     analysis?: unknown
     message?: unknown
     error?: unknown
+    knowledge?: unknown
   }
   if (record.ok === true) {
     const analysis = readAnalysis(record.analysis)
     if (!analysis) {
       return { ok: false, message: ERROR_MESSAGES.incomplete }
     }
-    return { ok: true, analysis }
+    return { ok: true, analysis, knowledge: readKnowledge(record.knowledge) }
   }
 
   return {

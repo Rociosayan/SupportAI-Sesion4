@@ -6,6 +6,7 @@ import { InboxPagination } from '../components/InboxPagination'
 import { PageHeader } from '../components/PageHeader'
 import { SearchBox } from '../components/SearchBox'
 import type { ImportedAnalysis } from '../components/ResultComparison'
+import type { GeminiKnowledge } from '../utils/geminiApi'
 import type { CaseStatus, SupportCase } from '../types/case'
 import type { SavedLlmAnalysis } from '../types/savedAnalysis'
 import {
@@ -15,7 +16,7 @@ import {
   type PriorityFilter,
   type StatusFilter,
 } from '../utils/filters'
-import type { HumanReview, RagResult } from '../types/rag'
+import type { RagResult } from '../types/rag'
 import type { SimulatedAnalysis } from '../utils/simulateAnalysis'
 
 const PAGE_SIZE = 8
@@ -29,17 +30,16 @@ type CasesProps = {
   simulatedById: Record<string, SimulatedAnalysis>
   importedById: Record<string, ImportedAnalysis>
   geminiById: Record<string, ImportedAnalysis>
+  geminiKnowledgeById: Record<string, GeminiKnowledge>
   geminiErrorById: Record<string, string>
   analyzingId: string | null
   geminiAnalyzingId: string | null
   ragById: Record<string, RagResult>
   ragErrorById: Record<string, string>
   ragAnalyzingId: string | null
-  ragReviewById: Record<string, HumanReview>
   onAnalyze: (caseItem: SupportCase) => void
   onAnalyzeGemini: (caseItem: SupportCase) => void
   onAnalyzeRag: (caseItem: SupportCase) => void
-  onRagReview: (caseId: string, value: HumanReview) => void
   onApplyImported: (caseId: string, data: ImportedAnalysis) => void
 }
 
@@ -51,17 +51,16 @@ export function Cases({
   simulatedById,
   importedById,
   geminiById,
+  geminiKnowledgeById,
   geminiErrorById,
   analyzingId,
   geminiAnalyzingId,
   ragById,
   ragErrorById,
   ragAnalyzingId,
-  ragReviewById,
   onAnalyze,
   onAnalyzeGemini,
   onAnalyzeRag,
-  onRagReview,
   onApplyImported,
   onSaveAnalysis,
 }: CasesProps) {
@@ -95,7 +94,7 @@ export function Cases({
     <div className="page page-wide">
       <PageHeader
         title="Casos"
-        subtitle="Bandeja operativa de atención al cliente. Los 30 casos son datos locales del laboratorio."
+        subtitle="Bandeja de atención. Busca y filtra los casos de la empresa."
       />
       <div className="toolbar">
         <SearchBox value={query} onChange={setQuery} />
@@ -109,11 +108,24 @@ export function Cases({
         />
       </div>
       <p className="result-count">
-        {visibleCases.length} casos · {unreadCount} no leídos · todos SIN ANALIZAR
+        {visibleCases.length} casos · {unreadCount} no leídos
       </p>
       <div className="split-view">
         <div className="inbox-pane">
-          <CaseList cases={pagedCases} selectedId={selectedId} onSelect={onSelect} />
+          <CaseList
+            cases={pagedCases}
+            selectedId={selectedId}
+            onSelect={onSelect}
+            analysisLabel={(id) => {
+              if (geminiAnalyzingId === id) {
+                return 'Analizando'
+              }
+              if (geminiById[id]) {
+                return 'Respuesta disponible'
+              }
+              return 'Sin analizar'
+            }}
+          />
           <InboxPagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
         <CaseDetail
@@ -123,13 +135,13 @@ export function Cases({
           simulated={selectedCase ? simulatedById[selectedCase.id] ?? null : null}
           imported={selectedCase ? importedById[selectedCase.id] ?? null : null}
           gemini={selectedCase ? geminiById[selectedCase.id] ?? null : null}
+          geminiKnowledge={selectedCase ? geminiKnowledgeById[selectedCase.id] ?? null : null}
           geminiError={selectedCase ? geminiErrorById[selectedCase.id] ?? null : null}
           analyzing={Boolean(selectedCase && analyzingId === selectedCase.id)}
           geminiAnalyzing={Boolean(selectedCase && geminiAnalyzingId === selectedCase.id)}
           rag={selectedCase ? ragById[selectedCase.id] ?? null : null}
           ragError={selectedCase ? ragErrorById[selectedCase.id] ?? null : null}
           ragAnalyzing={Boolean(selectedCase && ragAnalyzingId === selectedCase.id)}
-          ragReview={selectedCase ? ragReviewById[selectedCase.id] ?? null : null}
           onAnalyze={() => {
             if (selectedCase) {
               onAnalyze(selectedCase)
@@ -143,11 +155,6 @@ export function Cases({
           onAnalyzeRag={() => {
             if (selectedCase) {
               onAnalyzeRag(selectedCase)
-            }
-          }}
-          onRagReview={(value) => {
-            if (selectedCase) {
-              onRagReview(selectedCase.id, value)
             }
           }}
           onApplyImported={(data) => {

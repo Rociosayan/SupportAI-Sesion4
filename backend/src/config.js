@@ -6,6 +6,21 @@ export const RAG_MATCH_COUNT = 4
 export const PORT = Number(process.env.PORT) || 3001
 export const FRONTEND_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
 
+export function isAllowedOrigin(origin) {
+  if (!origin) {
+    return false
+  }
+  if (FRONTEND_ORIGINS.includes(origin)) {
+    return true
+  }
+  try {
+    const host = new URL(origin).hostname
+    return host.endsWith('.vercel.app') || host.endsWith('.github.io')
+  } catch {
+    return false
+  }
+}
+
 export const KNOWLEDGE_SOURCES = {
   politicas: 'supportai-politicas.txt',
   curso: 'curso.txt',

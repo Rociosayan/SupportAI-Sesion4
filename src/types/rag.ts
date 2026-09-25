@@ -10,6 +10,8 @@ export type RagFragment = {
 export type RagResult = {
   query: string
   source: string
+  store: 'local' | 'supabase'
+  storeNote?: 'ready' | 'unconfigured' | 'missing_table'
   fragments: RagFragment[]
   bestScore: number
   contextoSuficiente: boolean

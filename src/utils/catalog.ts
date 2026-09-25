@@ -40,6 +40,10 @@ const PRODUCTS_FROM_CASES: Record<string, string> = {
   'PED-2026-10455': 'Reposición del pedido',
 }
 
+export function productForOrder(orderNumber: string): string | null {
+  return PRODUCTS_FROM_CASES[orderNumber] ?? null
+}
+
 function orderStatus(cases: SupportCase[]): string {
   if (cases.some((item) => item.category === 'Cancelación' && item.status === 'Resuelto')) {
     return 'Cancelado'

@@ -9,6 +9,7 @@ import { chunkKnowledgeSource } from './chunker.js'
 import { embedDocument, embedQuery } from './embeddings.js'
 import { generateText } from './geminiService.js'
 import { resolveSourceName } from './knowledge.js'
+import { matchLocalChunks } from './localEmbeddings.js'
 import { countChunksBySource, matchChunks, upsertChunk } from './supabase.js'
 
 function applyContextRule(fragments) {
@@ -47,7 +48,7 @@ export async function indexAllSources() {
   return { sources: [politicas, curso] }
 }
 
-export async function retrieveContext(query, source) {
+export async function retrieveContext(query, source, { store = 'local' } = {}) {
   const name = resolveSourceName(source)
   const text = String(query ?? '').trim()
   if (!text) {
@@ -57,12 +58,16 @@ export async function retrieveContext(query, source) {
   }
 
   const embedding = await embedQuery(text)
-  const fragments = await matchChunks(embedding, name, RAG_MATCH_COUNT)
+  const fragments =
+    store === 'local'
+      ? matchLocalChunks(embedding, name, RAG_MATCH_COUNT)
+      : await matchChunks(embedding, name, RAG_MATCH_COUNT)
   const { contextoSuficiente, bestScore } = applyContextRule(fragments)
 
   return {
     query: text,
     source: name,
+    store,
     fragments,
     bestScore,
     contextoSuficiente,
@@ -98,8 +103,8 @@ function buildRagPrompt(question, fragments) {
   ].join('\n')
 }
 
-export async function answerWithRag(query, source, { caseMode = false } = {}) {
-  const retrieved = await retrieveContext(query, source)
+export async function answerWithRag(query, source, { caseMode = false, store = 'local' } = {}) {
+  const retrieved = await retrieveContext(query, source, { store })
   const insufficientMessage = caseMode ? INSUFFICIENT_CASE : INSUFFICIENT_QUERY
 
   if (!retrieved.contextoSuficiente) {

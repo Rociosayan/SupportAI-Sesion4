@@ -295,8 +295,8 @@ export function PrepareAiQuery({ supportCase, imported, onApply, onSave }: Prepa
     <section className="lab-form">
       <h3>Flujo actual de integración</h3>
       <p className="notice">
-        Este laboratorio es manual: copia el prompt, pégalo en ChatGPT, Gemini o Claude, y
-        luego pega aquí el JSON. No hay API ni modelo conectado.
+        Este flujo es manual y aparte de Gemini: copia el prompt, pégalo en un modelo y
+        vuelve a pegar aquí el JSON. SupportAI valida ese JSON antes de aplicarlo.
       </p>
 
       <div className="lab-step">
@@ -369,14 +369,12 @@ export function PrepareAiQuery({ supportCase, imported, onApply, onSave }: Prepa
           Aplicar análisis
         </button>
 
-        <section>
-          <h3>Análisis recibido del LLM</h3>
-          <AnalysisCards
-            source="imported"
-            phase={imported ? 'done' : 'idle'}
-            analysis={imported ? toCardValues(imported) : null}
-          />
-        </section>
+        {imported ? (
+          <section>
+            <h3>Análisis recibido del LLM</h3>
+            <AnalysisCards source="imported" phase="done" analysis={toCardValues(imported)} />
+          </section>
+        ) : null}
         <button
           type="button"
           className="analyze-button"

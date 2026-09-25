@@ -1,7 +1,41 @@
 .app-shell {
   min-height: 100svh;
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 240px 1fr;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-product,
+.header-agent p:first-child,
+.sidebar-agent p:first-child {
+  margin: 0;
+  font-weight: 700;
+}
+
+.header-area,
+.header-agent p:last-child,
+.sidebar-agent p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.header-agent {
+  margin-left: auto;
+  text-align: right;
+}
+
+.sidebar-agent {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 
 .sidebar {
@@ -118,7 +152,29 @@
 }
 
 .page-header h1 {
-  font-size: 1.7rem;
+  font-size: 1.45rem;
+  margin: 0;
+}
+
+.button-secondary {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+.lab-table tbody tr {
+  cursor: pointer;
+}
+
+.lab-table tbody tr.is-selected {
+  background: var(--primary-soft);
+}
+
+.manual-mode {
+  margin-top: 12px;
 }
 
 .page-header p,
@@ -131,8 +187,8 @@
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .stat-hint {
@@ -154,9 +210,8 @@
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px;
-  box-shadow: var(--shadow);
+  gap: 12px;
+  padding: 12px 14px;
 }
 
 .stat-icon {
@@ -190,13 +245,12 @@
 }
 
 .stat-value {
-  font-size: 1.7rem;
+  font-size: 1.35rem;
   font-weight: 700;
 }
 
 .panel {
-  padding: 20px;
-  box-shadow: var(--shadow);
+  padding: 16px 18px;
 }
 
 .activity-panel header,
@@ -404,6 +458,11 @@
   line-height: 1.55;
 }
 
+.knowledge-source {
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+
 .notice {
   background: #eaf3fb;
   border: 1px solid var(--border);
@@ -564,6 +623,12 @@
 .pagination button {
   background: var(--primary-soft);
   color: var(--primary);
+}
+
+.lab-presets button.is-active {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
 }
 
 .pagination button:disabled {

@@ -1,3 +1,7 @@
+-- Laboratorio 04: pgvector + knowledge_chunks
+-- embedding: vector(3072) para gemini-embedding-001
+-- No crear índice HNSW: pgvector lo rechaza sobre más de 2000 dimensiones.
+
 create extension if not exists vector;
 
 create table if not exists knowledge_chunks (

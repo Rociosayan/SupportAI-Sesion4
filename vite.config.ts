@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/SupportAI-Sesion4/',
+  base: process.env.VERCEL ? '/' : '/SupportAI-Sesion4/',
   server: {
     port: 5173,
     strictPort: true,

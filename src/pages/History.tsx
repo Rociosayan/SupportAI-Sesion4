@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { CaseDetail } from '../components/CaseDetail'
 import { CaseList } from '../components/CaseList'
 import type { ImportedAnalysis } from '../components/ResultComparison'
+import type { GeminiKnowledge } from '../utils/geminiApi'
 import { PageHeader } from '../components/PageHeader'
 import { SavedLlmDetail } from '../components/SavedLlmDetail'
 import type { CaseStatus, SupportCase } from '../types/case'
 import type { SavedLlmAnalysis } from '../types/savedAnalysis'
-import type { HumanReview, RagResult } from '../types/rag'
+import type { RagResult } from '../types/rag'
 import type { SimulatedAnalysis } from '../utils/simulateAnalysis'
 import { formatDateTime } from '../utils/format'
 import { sortByDateDesc } from '../utils/filters'
@@ -20,17 +21,16 @@ type HistoryProps = {
   simulatedById: Record<string, SimulatedAnalysis>
   importedById: Record<string, ImportedAnalysis>
   geminiById: Record<string, ImportedAnalysis>
+  geminiKnowledgeById: Record<string, GeminiKnowledge>
   geminiErrorById: Record<string, string>
   analyzingId: string | null
   geminiAnalyzingId: string | null
   ragById: Record<string, RagResult>
   ragErrorById: Record<string, string>
   ragAnalyzingId: string | null
-  ragReviewById: Record<string, HumanReview>
   onAnalyze: (caseItem: SupportCase) => void
   onAnalyzeGemini: (caseItem: SupportCase) => void
   onAnalyzeRag: (caseItem: SupportCase) => void
-  onRagReview: (caseId: string, value: HumanReview) => void
   onApplyImported: (caseId: string, data: ImportedAnalysis) => void
   onSaveAnalysis: (record: Omit<SavedLlmAnalysis, 'id' | 'savedAt'>) => void
 }
@@ -44,17 +44,16 @@ export function History({
   simulatedById,
   importedById,
   geminiById,
+  geminiKnowledgeById,
   geminiErrorById,
   analyzingId,
   geminiAnalyzingId,
   ragById,
   ragErrorById,
   ragAnalyzingId,
-  ragReviewById,
   onAnalyze,
   onAnalyzeGemini,
   onAnalyzeRag,
-  onRagReview,
   onApplyImported,
   onSaveAnalysis,
 }: HistoryProps) {
@@ -67,7 +66,7 @@ export function History({
     <div className="page page-wide">
       <PageHeader
         title="Historial"
-        subtitle="Casos resueltos y análisis guardados desde un LLM o Gemini API."
+        subtitle="Historial de esta sesión. Los análisis guardados se pierden al recargar la página."
       />
 
       <h2>Análisis guardados</h2>
@@ -111,13 +110,13 @@ export function History({
           simulated={selectedCase ? simulatedById[selectedCase.id] ?? null : null}
           imported={selectedCase ? importedById[selectedCase.id] ?? null : null}
           gemini={selectedCase ? geminiById[selectedCase.id] ?? null : null}
+          geminiKnowledge={selectedCase ? geminiKnowledgeById[selectedCase.id] ?? null : null}
           geminiError={selectedCase ? geminiErrorById[selectedCase.id] ?? null : null}
           analyzing={Boolean(selectedCase && analyzingId === selectedCase.id)}
           geminiAnalyzing={Boolean(selectedCase && geminiAnalyzingId === selectedCase.id)}
           rag={selectedCase ? ragById[selectedCase.id] ?? null : null}
           ragError={selectedCase ? ragErrorById[selectedCase.id] ?? null : null}
           ragAnalyzing={Boolean(selectedCase && ragAnalyzingId === selectedCase.id)}
-          ragReview={selectedCase ? ragReviewById[selectedCase.id] ?? null : null}
           onAnalyze={() => {
             if (selectedCase) {
               onAnalyze(selectedCase)
@@ -131,11 +130,6 @@ export function History({
           onAnalyzeRag={() => {
             if (selectedCase) {
               onAnalyzeRag(selectedCase)
-            }
-          }}
-          onRagReview={(value) => {
-            if (selectedCase) {
-              onRagReview(selectedCase.id, value)
             }
           }}
           onApplyImported={(data) => {

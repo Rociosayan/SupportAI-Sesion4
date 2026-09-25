@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Layout } from './components/Layout'
 import type { ImportedAnalysis } from './components/ResultComparison'
 import { initialCases } from './data/cases'
@@ -13,8 +13,8 @@ import { Orders } from './pages/Orders'
 import { Profile } from './pages/Profile'
 import type { CaseStatus, PageId, SupportCase } from './types/case'
 import type { SavedLlmAnalysis } from './types/savedAnalysis'
-import type { HumanReview, RagResult } from './types/rag'
-import { readAnalysis, requestGeminiAnalysis } from './utils/geminiApi'
+import type { RagResult } from './types/rag'
+import { readAnalysis, requestGeminiAnalysis, type GeminiKnowledge } from './utils/geminiApi'
 import { askCaseRag } from './utils/ragApi'
 import { simulateAnalysis, type SimulatedAnalysis } from './utils/simulateAnalysis'
 import './App.css'
@@ -27,13 +27,16 @@ function App() {
   const [simulatedById, setSimulatedById] = useState<Record<string, SimulatedAnalysis>>({})
   const [importedById, setImportedById] = useState<Record<string, ImportedAnalysis>>({})
   const [geminiById, setGeminiById] = useState<Record<string, ImportedAnalysis>>({})
+  const [geminiKnowledgeById, setGeminiKnowledgeById] = useState<Record<string, GeminiKnowledge>>(
+    {},
+  )
   const [geminiErrorById, setGeminiErrorById] = useState<Record<string, string>>({})
   const [analyzingId, setAnalyzingId] = useState<string | null>(null)
   const [geminiAnalyzingId, setGeminiAnalyzingId] = useState<string | null>(null)
   const [ragById, setRagById] = useState<Record<string, RagResult>>({})
   const [ragErrorById, setRagErrorById] = useState<Record<string, string>>({})
   const [ragAnalyzingId, setRagAnalyzingId] = useState<string | null>(null)
-  const [ragReviewById, setRagReviewById] = useState<Record<string, HumanReview>>({})
+  const ragRequestToken = useRef(0)
 
   function handleStatusChange(id: string, status: CaseStatus) {
     setCases((current) =>
@@ -41,7 +44,17 @@ function App() {
     )
   }
 
+  function clearRagState() {
+    ragRequestToken.current += 1
+    setRagById({})
+    setRagErrorById({})
+    setRagAnalyzingId(null)
+  }
+
   function handleSelect(id: string) {
+    if (selectedId && selectedId !== id) {
+      clearRagState()
+    }
     setSelectedId(id)
     setCases((current) =>
       current.map((item) => (item.id === id ? { ...item, unread: false } : item)),
@@ -49,6 +62,9 @@ function App() {
   }
 
   function openCase(id: string) {
+    if (selectedId && selectedId !== id) {
+      clearRagState()
+    }
     setSelectedId(id)
     setPage('casos')
   }
@@ -83,11 +99,21 @@ function App() {
       delete next[caseId]
       return next
     })
+    setGeminiKnowledgeById((stored) => {
+      const next = { ...stored }
+      delete next[caseId]
+      return next
+    })
 
     const result = await requestGeminiAnalysis(caseItem)
 
     if (!result.ok) {
       setGeminiById((stored) => {
+        const next = { ...stored }
+        delete next[caseId]
+        return next
+      })
+      setGeminiKnowledgeById((stored) => {
         const next = { ...stored }
         delete next[caseId]
         return next
@@ -98,6 +124,7 @@ function App() {
     }
 
     setGeminiById((stored) => ({ ...stored, [caseId]: result.analysis }))
+    setGeminiKnowledgeById((stored) => ({ ...stored, [caseId]: result.knowledge }))
     setGeminiAnalyzingId((current) => (current === caseId ? null : current))
   }
 
@@ -107,31 +134,23 @@ function App() {
       return
     }
 
+    const token = ++ragRequestToken.current
     setRagAnalyzingId(caseId)
-    setRagById((stored) => {
-      const next = { ...stored }
-      delete next[caseId]
-      return next
-    })
-    setRagErrorById((stored) => {
-      const next = { ...stored }
-      delete next[caseId]
-      return next
-    })
-    setRagReviewById((stored) => {
-      const next = { ...stored }
-      delete next[caseId]
-      return next
-    })
+    setRagById({})
+    setRagErrorById({})
 
     const result = await askCaseRag(caseItem)
+    if (token !== ragRequestToken.current) {
+      return
+    }
+
     if (!result.ok) {
-      setRagErrorById((stored) => ({ ...stored, [caseId]: result.message }))
+      setRagErrorById({ [caseId]: result.message })
       setRagAnalyzingId((current) => (current === caseId ? null : current))
       return
     }
 
-    setRagById((stored) => ({ ...stored, [caseId]: result.result }))
+    setRagById({ [caseId]: result.result })
     setRagAnalyzingId((current) => (current === caseId ? null : current))
   }
 
@@ -167,19 +186,16 @@ function App() {
           simulatedById={simulatedById}
           importedById={importedById}
           geminiById={geminiById}
+          geminiKnowledgeById={geminiKnowledgeById}
           geminiErrorById={geminiErrorById}
           analyzingId={analyzingId}
           geminiAnalyzingId={geminiAnalyzingId}
           ragById={ragById}
           ragErrorById={ragErrorById}
           ragAnalyzingId={ragAnalyzingId}
-          ragReviewById={ragReviewById}
           onAnalyze={handleAnalyze}
           onAnalyzeGemini={handleAnalyzeGemini}
           onAnalyzeRag={handleAnalyzeRag}
-          onRagReview={(caseId, value) =>
-            setRagReviewById((stored) => ({ ...stored, [caseId]: value }))
-          }
           onApplyImported={handleApplyImported}
         />
       )}
@@ -203,26 +219,23 @@ function App() {
           simulatedById={simulatedById}
           importedById={importedById}
           geminiById={geminiById}
+          geminiKnowledgeById={geminiKnowledgeById}
           geminiErrorById={geminiErrorById}
           analyzingId={analyzingId}
           geminiAnalyzingId={geminiAnalyzingId}
           ragById={ragById}
           ragErrorById={ragErrorById}
           ragAnalyzingId={ragAnalyzingId}
-          ragReviewById={ragReviewById}
           onAnalyze={handleAnalyze}
           onAnalyzeGemini={handleAnalyzeGemini}
           onAnalyzeRag={handleAnalyzeRag}
-          onRagReview={(caseId, value) =>
-            setRagReviewById((stored) => ({ ...stored, [caseId]: value }))
-          }
           onApplyImported={handleApplyImported}
           onSaveAnalysis={handleSaveAnalysis}
         />
       )}
       {page === 'ia-lab' && <AiLab />}
-      {page === 'clientes' && <Customers cases={cases} />}
-      {page === 'pedidos' && <Orders cases={cases} />}
+      {page === 'clientes' && <Customers cases={cases} onOpenCase={openCase} />}
+      {page === 'pedidos' && <Orders cases={cases} onOpenCase={openCase} />}
       {page === 'documentos' && <Documents />}
     </Layout>
   )

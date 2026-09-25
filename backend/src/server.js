@@ -1,7 +1,7 @@
 import http from 'http'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { FRONTEND_ORIGINS, KNOWLEDGE_SOURCES, PORT } from './config.js'
+import { INSUFFICIENT_CASE, isAllowedOrigin, KNOWLEDGE_SOURCES, PORT } from './config.js'
 import { ERROR_MESSAGES, mapProviderError, sanitizePublicText } from './errors.js'
 import { generateText } from './geminiService.js'
 import { listKnowledgeSources, readKnowledgeSource } from './knowledge.js'
@@ -9,7 +9,17 @@ import { loadEnv } from './loadEnv.js'
 import { parseGeminiAnalysis } from './parseAnalysis.js'
 import { buildPrompt } from './prompt.js'
 import { answerWithRag, buildCaseQuery, indexAllSources, retrieveContext } from './rag.js'
-import { supabaseConfigStatus } from './supabase.js'
+import { knowledgeTableReady, supabaseConfigStatus } from './supabase.js'
+
+async function resolveKnowledgeStore() {
+  if (!supabaseConfigStatus().configured) {
+    return { store: 'local', storeNote: 'unconfigured' }
+  }
+  if (await knowledgeTableReady()) {
+    return { store: 'supabase', storeNote: 'ready' }
+  }
+  return { store: 'local', storeNote: 'missing_table' }
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 loadEnv(path.join(__dirname, '../.env'))
@@ -24,7 +34,7 @@ function corsHeaders(req) {
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   }
-  if (origin && FRONTEND_ORIGINS.includes(origin)) {
+  if (isAllowedOrigin(origin)) {
     headers['Access-Control-Allow-Origin'] = origin
   }
   return headers
@@ -75,6 +85,13 @@ function statusPage() {
 }
 
 async function readJsonBody(req) {
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    return req.body
+  }
+  if (typeof req.body === 'string' && req.body.trim()) {
+    return JSON.parse(req.body)
+  }
+
   const chunks = []
   for await (const chunk of req) {
     chunks.push(chunk)
@@ -94,6 +111,17 @@ function mapRagError(error) {
         ok: false,
         error: 'missing_supabase',
         message: 'Faltan las credenciales de Supabase en el archivo .env del backend.',
+      },
+    }
+  }
+  if (error?.code === 'missing_local_index') {
+    return {
+      status: 503,
+      body: {
+        ok: false,
+        error: 'missing_local_index',
+        message:
+          'Falta completar la indexación local. No hay embeddings válidos en data/embeddings.json.',
       },
     }
   }
@@ -169,7 +197,21 @@ async function handleAnalyze(req, res) {
   }
 
   try {
-    const prompt = buildPrompt({ customerName, subject, message, priority, status })
+    const selection = await resolveKnowledgeStore()
+    const retrieved = await retrieveContext(
+      buildCaseQuery({ customerName, subject, message }),
+      KNOWLEDGE_SOURCES.politicas,
+      { store: selection.store },
+    )
+    const knowledge = retrieved.fragments.filter((item) => item.score >= retrieved.threshold)
+    const prompt = buildPrompt({
+      customerName,
+      subject,
+      message,
+      priority,
+      status,
+      knowledge,
+    })
     const text = await generateText(prompt)
     const parsed = parseGeminiAnalysis(text)
     if (!parsed.ok) {
@@ -181,7 +223,15 @@ async function handleAnalyze(req, res) {
       return
     }
 
-    sendJson(req, res, 200, { ok: true, analysis: parsed.analysis })
+    sendJson(req, res, 200, {
+      ok: true,
+      analysis: parsed.analysis,
+      knowledge: {
+        contextoSuficiente: knowledge.length > 0,
+        fragments: knowledge,
+        message: knowledge.length > 0 ? null : INSUFFICIENT_CASE,
+      },
+    })
   } catch (error) {
     const mapped = mapProviderError(error)
     console.error('[analizar]', mapped.body.error)
@@ -189,9 +239,11 @@ async function handleAnalyze(req, res) {
   }
 }
 
-function handleKnowledgeStatus(req, res) {
+async function handleKnowledgeStatus(req, res) {
   try {
     const politicas = readKnowledgeSource(KNOWLEDGE_SOURCES.politicas)
+    const supabase = supabaseConfigStatus()
+    const tableReady = supabase.configured ? await knowledgeTableReady() : false
     sendJson(req, res, 200, {
       ok: true,
       source: politicas.source,
@@ -200,7 +252,7 @@ function handleKnowledgeStatus(req, res) {
       lines: politicas.lines,
       content: politicas.content,
       sources: listKnowledgeSources(),
-      supabase: supabaseConfigStatus(),
+      supabase: { ...supabase, tableReady },
     })
   } catch (error) {
     const mapped = mapRagError(error)
@@ -233,8 +285,11 @@ async function handleRetrieve(req, res) {
   }
 
   try {
-    const result = await retrieveContext(body.query, body.source || KNOWLEDGE_SOURCES.politicas)
-    sendJson(req, res, 200, { ok: true, ...result })
+    const selection = await resolveKnowledgeStore()
+    const result = await retrieveContext(body.query, body.source || KNOWLEDGE_SOURCES.politicas, {
+      store: selection.store,
+    })
+    sendJson(req, res, 200, { ok: true, storeNote: selection.storeNote, ...result })
   } catch (error) {
     const mapped = mapRagError(error)
     console.error('[rag-retrieve]', mapped.body.error)
@@ -256,8 +311,11 @@ async function handleAsk(req, res) {
   }
 
   try {
-    const result = await answerWithRag(body.query, body.source || KNOWLEDGE_SOURCES.politicas)
-    sendJson(req, res, 200, { ok: true, ...result })
+    const selection = await resolveKnowledgeStore()
+    const result = await answerWithRag(body.query, body.source || KNOWLEDGE_SOURCES.politicas, {
+      store: selection.store,
+    })
+    sendJson(req, res, 200, { ok: true, storeNote: selection.storeNote, ...result })
   } catch (error) {
     const mapped = mapRagError(error)
     console.error('[rag-ask]', mapped.body.error)
@@ -280,12 +338,15 @@ async function handleCaseRag(req, res) {
 
   try {
     const query = buildCaseQuery(body)
-    const result = await answerWithRag(query, body.source || KNOWLEDGE_SOURCES.politicas, {
+    const selection = await resolveKnowledgeStore()
+    const result = await answerWithRag(query, KNOWLEDGE_SOURCES.politicas, {
       caseMode: true,
+      store: selection.store,
     })
     sendJson(req, res, 200, {
       ok: true,
       caseId: asText(body.caseId) || null,
+      storeNote: selection.storeNote,
       ...result,
     })
   } catch (error) {
@@ -295,8 +356,11 @@ async function handleCaseRag(req, res) {
   }
 }
 
-const server = http.createServer((req, res) => {
+export async function handleApiRequest(req, res) {
   const url = new URL(req.url ?? '/', `http://localhost:${PORT}`)
+  if (url.pathname !== '/' && url.pathname !== '/index.html' && !url.pathname.startsWith('/api/')) {
+    url.pathname = `/api${url.pathname.startsWith('/') ? url.pathname : `/${url.pathname}`}`
+  }
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204, corsHeaders(req))
@@ -320,27 +384,27 @@ const server = http.createServer((req, res) => {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/analizar') {
-    void handleAnalyze(req, res)
+    await handleAnalyze(req, res)
     return
   }
 
   if (req.method === 'POST' && url.pathname === '/api/rag/index') {
-    void handleIndex(req, res)
+    await handleIndex(req, res)
     return
   }
 
   if (req.method === 'POST' && url.pathname === '/api/rag/retrieve') {
-    void handleRetrieve(req, res)
+    await handleRetrieve(req, res)
     return
   }
 
   if (req.method === 'POST' && url.pathname === '/api/rag/ask') {
-    void handleAsk(req, res)
+    await handleAsk(req, res)
     return
   }
 
   if (req.method === 'POST' && url.pathname === '/api/rag/case') {
-    void handleCaseRag(req, res)
+    await handleCaseRag(req, res)
     return
   }
 
@@ -349,11 +413,25 @@ const server = http.createServer((req, res) => {
     error: 'not_found',
     message: 'Ruta no encontrada.',
   })
-})
+}
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`SupportAI backend en http://localhost:${PORT}`)
-  console.log('Comprobación: GET /api/health')
-  console.log('Análisis: POST /api/analizar')
-  console.log('RAG: POST /api/rag/retrieve y POST /api/rag/ask')
-})
+const invokedAsMain =
+  process.argv[1] &&
+  path.normalize(fileURLToPath(import.meta.url)) === path.normalize(path.resolve(process.argv[1]))
+
+if (invokedAsMain && !process.env.VERCEL) {
+  const server = http.createServer((req, res) => {
+    void handleApiRequest(req, res)
+  })
+
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`SupportAI backend en http://localhost:${PORT}`)
+    console.log('Comprobación: GET /api/health')
+    console.log('Análisis: POST /api/analizar')
+    console.log('RAG: POST /api/rag/retrieve y POST /api/rag/ask')
+  })
+}
+
+export default async function handler(req, res) {
+  await handleApiRequest(req, res)
+}

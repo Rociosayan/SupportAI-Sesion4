@@ -7,9 +7,10 @@ type CaseListProps = {
   cases: SupportCase[]
   selectedId: string | null
   onSelect: (id: string) => void
+  analysisLabel?: (id: string) => string
 }
 
-export function CaseList({ cases, selectedId, onSelect }: CaseListProps) {
+export function CaseList({ cases, selectedId, onSelect, analysisLabel }: CaseListProps) {
   if (cases.length === 0) {
     return <p className="empty-state">No hay casos que coincidan con la búsqueda o los filtros.</p>
   }
@@ -32,14 +33,13 @@ export function CaseList({ cases, selectedId, onSelect }: CaseListProps) {
             </div>
             <p className="case-subject">{item.subject}</p>
             <p className="case-meta">
-              {item.orderNumber} · {item.channel} · {item.category}
+              {item.id} · {item.orderNumber} · {item.channel} · {item.category}
             </p>
             <p className="case-preview">{item.message}</p>
             <div className="case-item-badges">
               <StatusBadge status={item.status} />
               <PriorityBadge priority={item.priority} />
-              <span className="badge badge-unanalyzed">SIN ANALIZAR</span>
-              <span className="badge">{item.unread ? 'No leído' : 'Leído'}</span>
+              <span className="badge">{analysisLabel ? analysisLabel(item.id) : 'Sin analizar'}</span>
             </div>
           </button>
         </li>

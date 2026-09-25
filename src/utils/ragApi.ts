@@ -42,6 +42,13 @@ function asResult(record: Record<string, unknown>): RagResult | null {
   return {
     query: typeof record.query === 'string' ? record.query : '',
     source: typeof record.source === 'string' ? record.source : '',
+    store: record.store === 'supabase' ? 'supabase' : 'local',
+    storeNote:
+      record.storeNote === 'ready' ||
+      record.storeNote === 'unconfigured' ||
+      record.storeNote === 'missing_table'
+        ? record.storeNote
+        : undefined,
     fragments,
     bestScore: typeof record.bestScore === 'number' ? record.bestScore : 0,
     contextoSuficiente: record.contextoSuficiente,

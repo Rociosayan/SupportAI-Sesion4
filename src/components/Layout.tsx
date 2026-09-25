@@ -1,5 +1,6 @@
 import { Menu } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { currentAgent, productArea, productName } from '../config/product'
 import type { PageId } from '../types/case'
 import { Sidebar } from './Sidebar'
 
@@ -29,13 +30,20 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
         />
       ) : null}
       <div className="app-main">
-        <div className="mobile-bar">
-          <button type="button" className="icon-button" onClick={() => setMenuOpen(true)}>
+        <header className="app-header">
+          <button type="button" className="icon-button mobile-only" onClick={() => setMenuOpen(true)}>
             <Menu size={20} />
             <span className="sr-only">Abrir menú</span>
           </button>
-          <span>SupportAI</span>
-        </div>
+          <div>
+            <p className="header-product">{productName}</p>
+            <p className="header-area">{productArea}</p>
+          </div>
+          <div className="header-agent">
+            <p>{currentAgent.name}</p>
+            <p>{currentAgent.role}</p>
+          </div>
+        </header>
         <main>{children}</main>
       </div>
     </div>

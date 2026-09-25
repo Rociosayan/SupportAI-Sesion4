@@ -9,7 +9,10 @@
     "test:gemini-sin-clave": "node --use-system-ca src/testGemini.js --sin-clave",
     "test:parse": "node src/testParseAnalysis.js",
     "knowledge:check": "node src/checkSource.js",
-    "knowledge:index": "node --use-system-ca src/indexKnowledge.js"
+    "knowledge:chunks": "node src/checkChunks.js",
+    "supabase:check": "node src/checkSupabase.js",
+    "knowledge:index": "node --use-system-ca src/indexKnowledge.js",
+    "knowledge:index-local": "node --use-system-ca src/indexLocal.js"
   },
   "dependencies": {
     "@google/genai": "^2.23.0"

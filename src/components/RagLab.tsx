@@ -1,97 +1,91 @@
 import { useState } from 'react'
 import type { KnowledgeSource, RagResult } from '../types/rag'
-import { askRag, retrieveRag } from '../utils/ragApi'
+import { retrieveRag } from '../utils/ragApi'
 import { RagFragments } from './RagFragments'
 
-const POLICY_PRESETS = [
+const POLITICAS_PRESETS = [
   { id: 'A', label: 'A. Devolución', query: '¿Cuántos días tengo para devolver un producto?' },
   { id: 'B', label: 'B. Pedido retrasado', query: 'Mi pedido está muy retrasado, ¿qué corresponde hacer?' },
   { id: 'C', label: 'C. Cursos de inglés', query: '¿La tienda ofrece cursos de inglés?' },
 ] as const
 
-const COURSE_PRESETS = [
-  { id: '1', label: '1. Horas del curso', query: '¿Cuántas horas dura el curso?' },
+const CURSO_PRESETS = [
+  { id: '1', label: '1. Duración', query: '¿Cuántas horas dura el curso?' },
   { id: '2', label: '2. Bloques', query: '¿Qué contenidos o bloques se desarrollan?' },
   { id: '3', label: '3. Power BI', query: '¿El curso incluye Power BI?' },
 ] as const
 
-type RagPhase = 'idle' | 'retrieving' | 'asking' | 'done' | 'insufficient' | 'error'
+const SOURCES: { id: KnowledgeSource; label: string }[] = [
+  { id: 'supportai-politicas.txt', label: 'supportai-politicas.txt' },
+  { id: 'curso.txt', label: 'curso.txt' },
+]
+
+function presetsFor(source: KnowledgeSource) {
+  return source === 'curso.txt' ? CURSO_PRESETS : POLITICAS_PRESETS
+}
 
 export function RagLab() {
   const [source, setSource] = useState<KnowledgeSource>('supportai-politicas.txt')
-  const [query, setQuery] = useState<string>(POLICY_PRESETS[0].query)
+  const [query, setQuery] = useState<string>(POLITICAS_PRESETS[0].query)
   const [retrieved, setRetrieved] = useState<RagResult | null>(null)
-  const [answered, setAnswered] = useState<RagResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [phase, setPhase] = useState<RagPhase>('idle')
+  const [searching, setSearching] = useState(false)
+
+  function clearResult() {
+    setRetrieved(null)
+    setError(null)
+  }
+
+  function applySource(nextSource: KnowledgeSource) {
+    if (nextSource === source) {
+      return
+    }
+    setSource(nextSource)
+    setQuery(presetsFor(nextSource)[0].query)
+    clearResult()
+  }
 
   function applyPreset(nextQuery: string) {
     setQuery(nextQuery)
-    setRetrieved(null)
-    setAnswered(null)
-    setError(null)
-    setPhase('idle')
+    clearResult()
   }
 
   async function handleRetrieve() {
-    setPhase('retrieving')
-    setError(null)
-    setRetrieved(null)
-    setAnswered(null)
+    setSearching(true)
+    clearResult()
     const result = await retrieveRag(query, source)
+    setSearching(false)
     if (!result.ok) {
       setError(result.message)
-      setPhase('error')
       return
     }
     setRetrieved(result.result)
-    setPhase(result.result.contextoSuficiente ? 'done' : 'insufficient')
   }
 
-  async function handleAsk() {
-    setPhase('asking')
-    setError(null)
-    setAnswered(null)
-    const result = await askRag(query, source)
-    if (!result.ok) {
-      setError(result.message)
-      setPhase('error')
-      return
-    }
-    setAnswered(result.result)
-    setRetrieved(result.result)
-    setPhase(result.result.contextoSuficiente ? 'done' : 'insufficient')
-  }
-
-  const visible = answered ?? retrieved
-  const presets = source === 'curso.txt' ? COURSE_PRESETS : POLICY_PRESETS
+  const presets = presetsFor(source)
 
   return (
     <section className="panel lab-form rag-lab">
       <h2>Prueba de recuperación RAG</h2>
       <p className="notice">
-        El backend recupera fragmentos de una sola fuente. Gemini solo genera respuesta si el mejor
-        score es mayor o igual a 0.70.
+        El backend busca solo en {source}. No mezcla políticas de atención con el temario del curso.
       </p>
 
-      <label>
-        Fuente
-        <select
-          value={source}
-          onChange={(event) => {
-            const next = event.target.value as KnowledgeSource
-            setSource(next)
-            setRetrieved(null)
-            setAnswered(null)
-            setError(null)
-            setPhase('idle')
-            setQuery(next === 'curso.txt' ? COURSE_PRESETS[0].query : POLICY_PRESETS[0].query)
-          }}
-        >
-          <option value="supportai-politicas.txt">supportai-politicas.txt</option>
-          <option value="curso.txt">curso.txt</option>
-        </select>
-      </label>
+      <div className="lab-presets">
+        <span>Fuente</span>
+        <div>
+          {SOURCES.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={source === item.id ? 'is-active' : ''}
+              onClick={() => applySource(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="lab-presets">
         <span>Consultas de prueba</span>
@@ -106,50 +100,43 @@ export function RagLab() {
 
       <label>
         Consulta
-        <textarea rows={3} value={query} onChange={(event) => setQuery(event.target.value)} />
+        <textarea
+          rows={3}
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value)
+            clearResult()
+          }}
+        />
       </label>
 
-      <div className="rag-actions">
-        <button type="button" className="analyze-button" onClick={() => void handleRetrieve()}>
-          Buscar contexto
-        </button>
-        <button type="button" className="analyze-button" onClick={() => void handleAsk()}>
-          Preguntar con RAG
-        </button>
-      </div>
+      <button type="button" className="analyze-button" onClick={() => void handleRetrieve()}>
+        Buscar contexto
+      </button>
 
-      {phase === 'retrieving' || phase === 'asking' ? (
+      {searching ? (
         <p className="notice" role="status">
-          CONSULTANDO CONOCIMIENTO...
+          Buscando contexto...
         </p>
       ) : null}
-      {phase === 'error' && error ? (
+      {error ? (
         <p className="notice error-notice" role="alert">
-          ERROR DE CONSULTA. {error}
+          {error}
         </p>
       ) : null}
-      {visible && !visible.contextoSuficiente ? (
-        <p className="notice" role="status">
-          CONTEXTO INSUFICIENTE. {visible.message}
-        </p>
-      ) : null}
-      {answered?.contextoSuficiente ? (
-        <p className="notice" role="status">
-          RESPUESTA GENERADA CON RAG
-        </p>
-      ) : null}
-
-      {visible ? (
+      {retrieved ? (
         <>
           <p className="result-count">
-            {visible.fragments.length} fragmentos · mejor score {visible.bestScore.toFixed(3)} ·
-            umbral {visible.threshold.toFixed(2)} · fuente {visible.source}
+            contextoSuficiente = {String(retrieved.contextoSuficiente)} · mejor score{' '}
+            {retrieved.bestScore.toFixed(3)} · umbral {retrieved.threshold.toFixed(2)} · fuente{' '}
+            {retrieved.source}
           </p>
-          {answered?.answer ? <p className="case-message">{answered.answer}</p> : null}
-          {answered?.sources.length ? (
-            <p className="result-count">Fuentes: {answered.sources.join(', ')}</p>
+          {!retrieved.contextoSuficiente ? (
+            <p className="notice" role="status">
+              {retrieved.message}
+            </p>
           ) : null}
-          <RagFragments fragments={visible.fragments} />
+          <RagFragments fragments={retrieved.fragments} />
         </>
       ) : null}
     </section>

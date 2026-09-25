@@ -65,3 +65,29 @@ export function embedDocument(text) {
 export function embedQuery(text) {
   return embedText(text, 'RETRIEVAL_QUERY')
 }
+
+export function cosineSimilarity(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length || left.length === 0) {
+    return 0
+  }
+
+  let dot = 0
+  let leftNorm = 0
+  let rightNorm = 0
+  for (let index = 0; index < left.length; index += 1) {
+    const a = Number(left[index])
+    const b = Number(right[index])
+    if (!Number.isFinite(a) || !Number.isFinite(b)) {
+      return 0
+    }
+    dot += a * b
+    leftNorm += a * a
+    rightNorm += b * b
+  }
+
+  if (leftNorm === 0 || rightNorm === 0) {
+    return 0
+  }
+
+  return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm))
+}

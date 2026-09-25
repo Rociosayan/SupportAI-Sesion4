@@ -52,7 +52,7 @@ export function AnalysisCards({
   const showSignals = phase === 'done'
   const imported = source === 'imported'
   const gemini = source === 'gemini'
-  const loadingLabel = gemini ? 'ANALIZANDO CON GEMINI...' : 'ANALIZANDO...'
+  const loadingLabel = 'Analizando...'
   const sectionLabel = gemini
     ? 'Análisis generado con Gemini API'
     : imported

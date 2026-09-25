@@ -16,7 +16,7 @@ export function RecentActivity({ cases, onOpenCase }: RecentActivityProps) {
     <section className="panel activity-panel">
       <header>
         <h2>Actividad reciente</h2>
-        <p>Casos más recientes de la bandeja local.</p>
+        <p>Casos reales de la bandeja, del más reciente al más antiguo.</p>
       </header>
       <ul className="activity-list">
         {recent.map((item) => (
@@ -30,6 +30,7 @@ export function RecentActivity({ cases, onOpenCase }: RecentActivityProps) {
                 <time dateTime={item.date}>{formatDate(item.date)}</time>
                 <StatusBadge status={item.status} />
                 <PriorityBadge priority={item.priority} />
+                <span className="badge">Ver caso</span>
               </div>
             </button>
           </li>

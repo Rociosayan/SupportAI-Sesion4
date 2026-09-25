@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, CircleDot, ClipboardList, Clock3, FolderOpen } from 'lucide-react'
+import { AlertTriangle, CircleDot, Clock3, FolderOpen } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { RecentActivity } from '../components/RecentActivity'
 import { StatCard } from '../components/StatCard'
@@ -17,7 +17,7 @@ export function Home({ cases, onOpenCase }: HomeProps) {
     <div className="page">
       <PageHeader
         title="Inicio"
-        subtitle="Indicadores calculados solo a partir de los casos de la bandeja local."
+        subtitle="Centro de Atención"
       />
 
       <section className="stats-grid" aria-label="Indicadores de la bandeja">
@@ -45,20 +45,7 @@ export function Home({ cases, onOpenCase }: HomeProps) {
           label="Casos en proceso"
           value={stats.inProgress}
           hint="Estado En proceso"
-          icon={<CircleDot size={22} />}
-        />
-        <StatCard
-          label="Casos resueltos"
-          value={stats.resolved}
-          hint="Estado Resuelto"
-          icon={<CheckCircle2 size={22} />}
-          tone="success"
-        />
-        <StatCard
-          label="Total de casos"
-          value={stats.total}
-          hint="Todos los casos de la bandeja"
-          icon={<ClipboardList size={22} />}
+          icon={<CircleDot size={18} />}
         />
       </section>
 

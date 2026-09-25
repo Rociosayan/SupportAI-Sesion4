@@ -2,9 +2,10 @@ import { EMBEDDING_DIMENSIONS } from './config.js'
 
 function requireSupabase() {
   const url = process.env.SUPABASE_URL?.trim().replace(/\/$/, '')
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  const key =
+    process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
   if (!url || !key) {
-    const error = new Error('Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el .env del backend.')
+    const error = new Error('Faltan SUPABASE_URL o SUPABASE_SECRET_KEY en el .env del backend.')
     error.code = 'missing_supabase'
     throw error
   }
@@ -110,6 +111,21 @@ export async function matchChunks(queryEmbedding, source, matchCount) {
     content: row.content,
     score: Number(row.score),
   }))
+}
+
+export async function knowledgeTableReady() {
+  try {
+    const { url, key } = requireSupabase()
+    const response = await fetch(`${url}/rest/v1/knowledge_chunks?select=id&limit=1`, {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+      },
+    })
+    return response.ok
+  } catch {
+    return false
+  }
 }
 
 export async function countChunksBySource(source) {
