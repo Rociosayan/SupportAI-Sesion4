@@ -75,6 +75,7 @@ export type PageId =
   | 'diagnostico'
   | 'historial'
   | 'ia-lab'
+  | 'laboratorio'
   | 'clientes'
   | 'pedidos'
   | 'documentos'

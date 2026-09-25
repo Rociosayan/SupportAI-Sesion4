@@ -1,9 +1,12 @@
+import { createHash } from 'crypto'
 import http from 'http'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { INSUFFICIENT_CASE, isAllowedOrigin, KNOWLEDGE_SOURCES, PORT } from './config.js'
+import { GEMINI_MODEL, INSUFFICIENT_CASE, isAllowedOrigin, KNOWLEDGE_SOURCES, PORT } from './config.js'
 import { ERROR_MESSAGES, mapProviderError, sanitizePublicText } from './errors.js'
 import { generateText } from './geminiService.js'
+import { compareModels } from './labCompare.js'
+import { labCatalog } from './labProviders.js'
 import { listKnowledgeSources, readKnowledgeSource } from './knowledge.js'
 import { loadEnv } from './loadEnv.js'
 import { parseGeminiAnalysis } from './parseAnalysis.js'
@@ -57,6 +60,60 @@ function sendHtml(req, res, status, html) {
     'Content-Length': Buffer.byteLength(html),
   })
   res.end(html)
+}
+
+const TEMPERATURE_MIN = 0
+const TEMPERATURE_MAX = 2
+const INVALID_TEMPERATURE = Symbol('invalid_temperature')
+
+function readTemperature(value) {
+  if (value === undefined || value === null || value === '') {
+    return undefined
+  }
+  const number = typeof value === 'number' ? value : Number.NaN
+  if (!Number.isFinite(number) || number < TEMPERATURE_MIN || number > TEMPERATURE_MAX) {
+    return INVALID_TEMPERATURE
+  }
+  return Math.round(number * 10) / 10
+}
+
+function readTemperatureList(value) {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+  if (!Array.isArray(value) || value.length < 1 || value.length > 3) {
+    return INVALID_TEMPERATURE
+  }
+  const temperatures = []
+  for (const item of value) {
+    const temperature = readTemperature(item)
+    if (temperature === undefined || temperature === INVALID_TEMPERATURE) {
+      return INVALID_TEMPERATURE
+    }
+    temperatures.push(temperature)
+  }
+  return temperatures
+}
+
+async function runTemperatureAnalysis(prompt, temperature) {
+  const text = await generateText(
+    prompt,
+    temperature === undefined ? {} : { temperature },
+  )
+  const parsed = parseGeminiAnalysis(text)
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      temperature,
+      error: parsed.error,
+      message: sanitizePublicText(parsed.message, ERROR_MESSAGES.internal),
+    }
+  }
+  return {
+    ok: true,
+    temperature,
+    analysis: parsed.analysis,
+  }
 }
 
 function statusPage() {
@@ -186,12 +243,23 @@ async function handleAnalyze(req, res) {
   const message = asText(body.message)
   const priority = asText(body.priority)
   const status = asText(body.status)
+  const temperature = readTemperature(body.temperature)
+  const temperatures = readTemperatureList(body.temperatures)
 
   if (!customerName || !subject || !message) {
     sendJson(req, res, 400, {
       ok: false,
       error: 'invalid_case',
       message: ERROR_MESSAGES.invalid_case,
+    })
+    return
+  }
+
+  if (temperature === INVALID_TEMPERATURE || temperatures === INVALID_TEMPERATURE) {
+    sendJson(req, res, 400, {
+      ok: false,
+      error: 'invalid_temperature',
+      message: ERROR_MESSAGES.invalid_temperature,
     })
     return
   }
@@ -212,13 +280,47 @@ async function handleAnalyze(req, res) {
       status,
       knowledge,
     })
-    const text = await generateText(prompt)
-    const parsed = parseGeminiAnalysis(text)
+    const promptId = createHash('sha256').update(prompt).digest('hex').slice(0, 12)
+    const knowledgePayload = {
+      contextoSuficiente: knowledge.length > 0,
+      fragments: knowledge,
+      message: knowledge.length > 0 ? null : INSUFFICIENT_CASE,
+    }
+
+    if (temperatures) {
+      const results = []
+      for (const value of temperatures) {
+        try {
+          results.push(await runTemperatureAnalysis(prompt, value))
+        } catch (error) {
+          const mapped = mapProviderError(error)
+          results.push({
+            ok: false,
+            temperature: value,
+            error: mapped.body.error,
+            message: mapped.body.message,
+          })
+        }
+      }
+      sendJson(req, res, 200, {
+        ok: true,
+        model: GEMINI_MODEL,
+        promptId,
+        knowledge: knowledgePayload,
+        results,
+      })
+      return
+    }
+
+    const parsed = await runTemperatureAnalysis(prompt, temperature)
     if (!parsed.ok) {
       sendJson(req, res, 502, {
         ok: false,
         error: parsed.error,
         message: sanitizePublicText(parsed.message, ERROR_MESSAGES.internal),
+        ...(temperature === undefined
+          ? {}
+          : { model: GEMINI_MODEL, temperature, promptId }),
       })
       return
     }
@@ -226,11 +328,10 @@ async function handleAnalyze(req, res) {
     sendJson(req, res, 200, {
       ok: true,
       analysis: parsed.analysis,
-      knowledge: {
-        contextoSuficiente: knowledge.length > 0,
-        fragments: knowledge,
-        message: knowledge.length > 0 ? null : INSUFFICIENT_CASE,
-      },
+      knowledge: knowledgePayload,
+      ...(temperature === undefined
+        ? {}
+        : { model: GEMINI_MODEL, temperature, promptId }),
     })
   } catch (error) {
     const mapped = mapProviderError(error)
@@ -385,6 +486,28 @@ export async function handleApiRequest(req, res) {
 
   if (req.method === 'POST' && url.pathname === '/api/analizar') {
     await handleAnalyze(req, res)
+    return
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/lab/models') {
+    sendJson(req, res, 200, labCatalog())
+    return
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/lab/compare') {
+    let body
+    try {
+      body = await readJsonBody(req)
+    } catch {
+      sendJson(req, res, 400, {
+        ok: false,
+        error: 'invalid_json',
+        message: 'El backend recibió un cuerpo con formato no válido.',
+      })
+      return
+    }
+    const result = await compareModels(body)
+    sendJson(req, res, result.status, result.body)
     return
   }
 

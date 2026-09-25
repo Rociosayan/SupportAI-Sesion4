@@ -19,7 +19,7 @@ export function Customers({ cases, onOpenCase }: CustomersProps) {
     <div className="page page-wide">
       <PageHeader
         title="Clientes"
-        subtitle="Clientes que aparecen en los casos actuales. No hay una base de clientes aparte."
+        subtitle="Clientes identificados a partir de los casos de atención."
       />
       <div className="split-view">
         <div className="lab-table-wrap panel">

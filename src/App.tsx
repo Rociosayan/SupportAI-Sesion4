@@ -8,6 +8,7 @@ import { Customers } from './pages/Customers'
 import { Diagnosis } from './pages/Diagnosis'
 import { Documents } from './pages/Documents'
 import { History } from './pages/History'
+import { LlmLab } from './pages/LlmLab'
 import { Home } from './pages/Home'
 import { Orders } from './pages/Orders'
 import { Profile } from './pages/Profile'
@@ -174,7 +175,14 @@ function App() {
 
   return (
     <Layout currentPage={page} onNavigate={setPage}>
-      {page === 'inicio' && <Home cases={cases} onOpenCase={openCase} />}
+      {page === 'inicio' && (
+        <Home
+          cases={cases}
+          analyzedCount={Object.keys(geminiById).length}
+          onOpenCase={openCase}
+          onNavigate={setPage}
+        />
+      )}
       {page === 'perfil' && <Profile />}
       {page === 'casos' && (
         <Cases
@@ -183,20 +191,15 @@ function App() {
           onSelect={handleSelect}
           onStatusChange={handleStatusChange}
           onSaveAnalysis={handleSaveAnalysis}
-          simulatedById={simulatedById}
-          importedById={importedById}
           geminiById={geminiById}
           geminiKnowledgeById={geminiKnowledgeById}
           geminiErrorById={geminiErrorById}
-          analyzingId={analyzingId}
           geminiAnalyzingId={geminiAnalyzingId}
           ragById={ragById}
           ragErrorById={ragErrorById}
           ragAnalyzingId={ragAnalyzingId}
-          onAnalyze={handleAnalyze}
           onAnalyzeGemini={handleAnalyzeGemini}
           onAnalyzeRag={handleAnalyzeRag}
-          onApplyImported={handleApplyImported}
         />
       )}
       {page === 'diagnostico' && (
@@ -216,24 +219,30 @@ function App() {
           onSelect={handleSelect}
           onStatusChange={handleStatusChange}
           savedAnalyses={savedAnalyses}
-          simulatedById={simulatedById}
-          importedById={importedById}
           geminiById={geminiById}
           geminiKnowledgeById={geminiKnowledgeById}
           geminiErrorById={geminiErrorById}
-          analyzingId={analyzingId}
           geminiAnalyzingId={geminiAnalyzingId}
           ragById={ragById}
           ragErrorById={ragErrorById}
           ragAnalyzingId={ragAnalyzingId}
-          onAnalyze={handleAnalyze}
           onAnalyzeGemini={handleAnalyzeGemini}
           onAnalyzeRag={handleAnalyzeRag}
-          onApplyImported={handleApplyImported}
           onSaveAnalysis={handleSaveAnalysis}
         />
       )}
       {page === 'ia-lab' && <AiLab />}
+      {page === 'laboratorio' && (
+        <LlmLab
+          cases={cases}
+          simulatedById={simulatedById}
+          importedById={importedById}
+          analyzingId={analyzingId}
+          onAnalyze={handleAnalyze}
+          onApplyImported={handleApplyImported}
+          onSaveAnalysis={handleSaveAnalysis}
+        />
+      )}
       {page === 'clientes' && <Customers cases={cases} onOpenCase={openCase} />}
       {page === 'pedidos' && <Orders cases={cases} onOpenCase={openCase} />}
       {page === 'documentos' && <Documents />}

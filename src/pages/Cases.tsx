@@ -17,7 +17,6 @@ import {
   type StatusFilter,
 } from '../utils/filters'
 import type { RagResult } from '../types/rag'
-import type { SimulatedAnalysis } from '../utils/simulateAnalysis'
 
 const PAGE_SIZE = 8
 
@@ -27,20 +26,15 @@ type CasesProps = {
   onSelect: (id: string) => void
   onStatusChange: (id: string, status: CaseStatus) => void
   onSaveAnalysis: (record: Omit<SavedLlmAnalysis, 'id' | 'savedAt'>) => void
-  simulatedById: Record<string, SimulatedAnalysis>
-  importedById: Record<string, ImportedAnalysis>
   geminiById: Record<string, ImportedAnalysis>
   geminiKnowledgeById: Record<string, GeminiKnowledge>
   geminiErrorById: Record<string, string>
-  analyzingId: string | null
   geminiAnalyzingId: string | null
   ragById: Record<string, RagResult>
   ragErrorById: Record<string, string>
   ragAnalyzingId: string | null
-  onAnalyze: (caseItem: SupportCase) => void
   onAnalyzeGemini: (caseItem: SupportCase) => void
   onAnalyzeRag: (caseItem: SupportCase) => void
-  onApplyImported: (caseId: string, data: ImportedAnalysis) => void
 }
 
 export function Cases({
@@ -48,20 +42,15 @@ export function Cases({
   selectedId,
   onSelect,
   onStatusChange,
-  simulatedById,
-  importedById,
   geminiById,
   geminiKnowledgeById,
   geminiErrorById,
-  analyzingId,
   geminiAnalyzingId,
   ragById,
   ragErrorById,
   ragAnalyzingId,
-  onAnalyze,
   onAnalyzeGemini,
   onAnalyzeRag,
-  onApplyImported,
   onSaveAnalysis,
 }: CasesProps) {
   const [query, setQuery] = useState('')
@@ -94,7 +83,7 @@ export function Cases({
     <div className="page page-wide">
       <PageHeader
         title="Casos"
-        subtitle="Bandeja de atención. Busca y filtra los casos de la empresa."
+        subtitle="Gestiona y analiza las solicitudes de los clientes."
       />
       <div className="toolbar">
         <SearchBox value={query} onChange={setQuery} />
@@ -132,21 +121,13 @@ export function Cases({
           key={selectedCase?.id ?? 'empty'}
           supportCase={selectedCase}
           onStatusChange={onStatusChange}
-          simulated={selectedCase ? simulatedById[selectedCase.id] ?? null : null}
-          imported={selectedCase ? importedById[selectedCase.id] ?? null : null}
           gemini={selectedCase ? geminiById[selectedCase.id] ?? null : null}
           geminiKnowledge={selectedCase ? geminiKnowledgeById[selectedCase.id] ?? null : null}
           geminiError={selectedCase ? geminiErrorById[selectedCase.id] ?? null : null}
-          analyzing={Boolean(selectedCase && analyzingId === selectedCase.id)}
           geminiAnalyzing={Boolean(selectedCase && geminiAnalyzingId === selectedCase.id)}
           rag={selectedCase ? ragById[selectedCase.id] ?? null : null}
           ragError={selectedCase ? ragErrorById[selectedCase.id] ?? null : null}
           ragAnalyzing={Boolean(selectedCase && ragAnalyzingId === selectedCase.id)}
-          onAnalyze={() => {
-            if (selectedCase) {
-              onAnalyze(selectedCase)
-            }
-          }}
           onAnalyzeGemini={() => {
             if (selectedCase) {
               onAnalyzeGemini(selectedCase)
@@ -155,11 +136,6 @@ export function Cases({
           onAnalyzeRag={() => {
             if (selectedCase) {
               onAnalyzeRag(selectedCase)
-            }
-          }}
-          onApplyImported={(data) => {
-            if (selectedCase) {
-              onApplyImported(selectedCase.id, data)
             }
           }}
           onSaveAnalysis={onSaveAnalysis}

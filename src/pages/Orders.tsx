@@ -19,7 +19,7 @@ export function Orders({ cases, onOpenCase }: OrdersProps) {
     <div className="page page-wide">
       <PageHeader
         title="Pedidos"
-        subtitle="Información de pedidos disponible para los casos del laboratorio."
+        subtitle="Pedidos asociados a los casos de atención."
       />
       <p className="result-count">
         {orders.length} pedidos asociados a los casos. No hay conexión con un sistema de pedidos externo.

@@ -68,8 +68,23 @@
 .sidebar nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
   flex: 1;
+}
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-group-label {
+  margin: 0 12px 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .connection-status {
@@ -149,6 +164,37 @@
   flex-direction: column;
   gap: 20px;
   max-width: 1200px;
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.case-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 20px;
+  align-items: start;
+}
+
+.case-main,
+.case-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.case-side {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.case-side .detail-grid {
+  grid-template-columns: 1fr;
 }
 
 .page-header h1 {
@@ -973,13 +1019,17 @@
   }
 
   .stats-grid,
+  .case-layout,
   .split-view,
   .detail-grid,
   .profile-card,
   .activity-list button,
   .analysis-grid,
   .lab-layout,
-  .docs-grid {
+  .docs-grid,
+  .llm-experiments,
+  .llm-result-grid,
+  .llm-model-picks {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: flex-start;
@@ -988,4 +1038,209 @@
   .app-main main {
     padding: 18px;
   }
+}
+
+.llm-experiments,
+.llm-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.llm-card,
+.llm-panel,
+.llm-result,
+.llm-observe {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.llm-card,
+.llm-panel,
+.llm-result,
+.llm-observe,
+.llm-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.llm-kicker,
+.llm-field-label,
+.llm-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.llm-card h2,
+.llm-panel h2,
+.llm-result h3,
+.llm-observe h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.llm-card p,
+.llm-message,
+.llm-result p,
+.llm-observe p {
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  font-weight: 400;
+}
+
+.llm-panel .detail-grid > div:last-child {
+  grid-column: 1 / -1;
+}
+
+.detail-grid dd.llm-message {
+  font-weight: 400;
+  white-space: pre-wrap;
+}
+
+.llm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.llm-field select,
+.llm-temperature input[type='range'] {
+  width: 100%;
+}
+
+.llm-field select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.llm-temperature-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.llm-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.llm-presets button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.llm-presets button.is-active {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: transparent;
+}
+
+.llm-status {
+  color: var(--muted);
+}
+
+.llm-error {
+  color: var(--alta);
+}
+
+.button-secondary:disabled,
+.llm-field select:disabled,
+.llm-field input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.llm-model-picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.llm-field input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.llm-diff {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.llm-diff th,
+.llm-diff td {
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  padding: 8px 10px;
+  vertical-align: top;
+  font-weight: 400;
+}
+
+.llm-diff thead th {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.llm-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+
+.llm-model-picks {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.llm-model-picks legend {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.llm-prompt {
+  margin: 0;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.llm-questions {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text);
+  font-size: 0.92rem;
 }

@@ -1,5 +1,5 @@
 import { Cloud } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { SavedLlmAnalysis } from '../types/savedAnalysis'
 import { readAnalysis, type GeminiKnowledge } from '../utils/geminiApi'
 import { AnalysisCards } from './AnalysisCards'
@@ -15,6 +15,30 @@ type GeminiAnalyzeProps = {
   onSave: (record: Omit<SavedLlmAnalysis, 'id' | 'savedAt'>) => void
   customerName: string
   subject: string
+}
+
+function EvidenceToggle({
+  count,
+  emptyMessage,
+  children,
+}: {
+  count: number
+  emptyMessage: string
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const label = count > 0 ? `${count} fuentes utilizadas` : emptyMessage
+
+  return (
+    <div className="panel">
+      <h3>Evidencia de conocimiento</h3>
+      <p className="result-count">{label}</p>
+      <button type="button" className="button-secondary" onClick={() => setOpen((value) => !value)}>
+        {open ? 'Ocultar evidencia' : 'Ver evidencia'}
+      </button>
+      {open ? children : null}
+    </div>
+  )
 }
 
 function toCardValues(data: ImportedAnalysis) {
@@ -86,7 +110,7 @@ export function GeminiAnalyze({
           disabled={analyzing}
         >
           <Cloud size={16} aria-hidden="true" />
-          {analyzing ? 'Analizando...' : 'Analizar caso'}
+          {analyzing ? 'Analizando...' : 'Analizar con IA'}
         </button>
       </div>
       {analyzing ? (
@@ -110,7 +134,7 @@ export function GeminiAnalyze({
             <p className="case-message">{visibleAnalysis.respuestaSugerida}</p>
             <button
               type="button"
-              className="analyze-button"
+              className="button-secondary"
               onClick={() => {
                 void navigator.clipboard.writeText(visibleAnalysis.respuestaSugerida)
               }}
@@ -118,8 +142,13 @@ export function GeminiAnalyze({
               Copiar respuesta
             </button>
           </div>
-          <div className="panel">
-            <h3>Fuentes de conocimiento utilizadas</h3>
+          <EvidenceToggle
+            count={knowledge?.fragments.length ?? 0}
+            emptyMessage={
+              knowledge?.message ||
+              'El conocimiento disponible no sustenta una respuesta para este caso.'
+            }
+          >
             {knowledge && knowledge.fragments.length > 0 ? (
               <ul className="rag-fragments">
                 {knowledge.fragments.map((item) => (
@@ -137,10 +166,10 @@ export function GeminiAnalyze({
                   'El conocimiento disponible no sustenta una respuesta para este caso.'}
               </p>
             )}
-          </div>
+          </EvidenceToggle>
         </>
       ) : null}
-      <button type="button" className="analyze-button" onClick={handleSave} disabled={!canSave}>
+      <button type="button" className="button-secondary" onClick={handleSave} disabled={!canSave}>
         Guardar en el historial de esta sesión
       </button>
       {saved ? (

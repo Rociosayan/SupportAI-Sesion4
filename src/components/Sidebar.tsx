@@ -1,6 +1,7 @@
 import {
   ClipboardList,
   FileText,
+  FlaskConical,
   History,
   Home,
   Package,
@@ -17,13 +18,27 @@ type SidebarProps = {
   onClose: () => void
 }
 
-const links: { id: PageId; label: string; icon: typeof Home }[] = [
-  { id: 'inicio', label: 'Inicio', icon: Home },
-  { id: 'casos', label: 'Casos', icon: ClipboardList },
-  { id: 'clientes', label: 'Clientes', icon: Users },
-  { id: 'pedidos', label: 'Pedidos', icon: Package },
-  { id: 'documentos', label: 'Conocimiento', icon: FileText },
-  { id: 'historial', label: 'Historial', icon: History },
+const groups: { label: string; links: { id: PageId; label: string; icon: typeof Home }[] }[] = [
+  {
+    label: 'Operación',
+    links: [
+      { id: 'inicio', label: 'Inicio', icon: Home },
+      { id: 'casos', label: 'Casos', icon: ClipboardList },
+      { id: 'clientes', label: 'Clientes', icon: Users },
+      { id: 'pedidos', label: 'Pedidos', icon: Package },
+    ],
+  },
+  {
+    label: 'Conocimiento',
+    links: [
+      { id: 'documentos', label: 'Conocimiento', icon: FileText },
+      { id: 'historial', label: 'Historial', icon: History },
+    ],
+  },
+  {
+    label: 'Laboratorio',
+    links: [{ id: 'laboratorio', label: 'Laboratorio LLM', icon: FlaskConical }],
+  },
 ]
 
 export function Sidebar({ currentPage, onNavigate, open, onClose }: SidebarProps) {
@@ -40,23 +55,28 @@ export function Sidebar({ currentPage, onNavigate, open, onClose }: SidebarProps
         </button>
       </div>
       <nav>
-        {links.map((link) => {
-          const Icon = link.icon
-          return (
-            <button
-              key={link.id}
-              type="button"
-              className={currentPage === link.id ? 'nav-link is-active' : 'nav-link'}
-              onClick={() => {
-                onNavigate(link.id)
-                onClose()
-              }}
-            >
-              <Icon size={18} />
-              {link.label}
-            </button>
-          )
-        })}
+        {groups.map((group) => (
+          <div key={group.label} className="nav-group">
+            <p className="nav-group-label">{group.label}</p>
+            {group.links.map((link) => {
+              const Icon = link.icon
+              return (
+                <button
+                  key={link.id}
+                  type="button"
+                  className={currentPage === link.id ? 'nav-link is-active' : 'nav-link'}
+                  onClick={() => {
+                    onNavigate(link.id)
+                    onClose()
+                  }}
+                >
+                  <Icon size={18} />
+                  {link.label}
+                </button>
+              )
+            })}
+          </div>
+        ))}
       </nav>
       <div className="sidebar-agent">
         <p>{currentAgent.name}</p>

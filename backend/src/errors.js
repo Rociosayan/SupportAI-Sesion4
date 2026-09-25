@@ -10,6 +10,8 @@ export const ERROR_MESSAGES = {
   internal: 'El backend no pudo completar el análisis.',
   model_unavailable: 'El modelo de Gemini configurado no está disponible.',
   invalid_case: 'Faltan datos mínimos del caso (cliente, asunto o mensaje).',
+  invalid_temperature:
+    'La temperatura debe estar entre 0.0 y 2.0, que es el rango que acepta Gemini.',
 }
 
 function looksLikeSecret(text) {

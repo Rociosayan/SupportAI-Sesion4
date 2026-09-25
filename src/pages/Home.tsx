@@ -2,23 +2,37 @@ import { AlertTriangle, CircleDot, Clock3, FolderOpen } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { RecentActivity } from '../components/RecentActivity'
 import { StatCard } from '../components/StatCard'
-import type { SupportCase } from '../types/case'
+import type { PageId, SupportCase } from '../types/case'
 import { getCaseStats } from '../utils/stats'
 
 type HomeProps = {
   cases: SupportCase[]
+  analyzedCount: number
   onOpenCase: (id: string) => void
+  onNavigate: (page: PageId) => void
 }
 
-export function Home({ cases, onOpenCase }: HomeProps) {
+export function Home({ cases, analyzedCount, onOpenCase, onNavigate }: HomeProps) {
   const stats = getCaseStats(cases)
+  const unanalyzed = Math.max(0, cases.length - analyzedCount)
 
   return (
     <div className="page">
-      <PageHeader
-        title="Inicio"
-        subtitle="Centro de Atención"
-      />
+        <PageHeader
+          title="Inicio"
+          subtitle="Centro de Atención"
+        />
+        <div className="quick-actions">
+          <button type="button" className="button-secondary" onClick={() => onNavigate('casos')}>
+            Ver casos
+          </button>
+          <button type="button" className="button-secondary" onClick={() => onNavigate('clientes')}>
+            Ver clientes
+          </button>
+          <button type="button" className="button-secondary" onClick={() => onNavigate('pedidos')}>
+            Ver pedidos
+          </button>
+        </div>
 
       <section className="stats-grid" aria-label="Indicadores de la bandeja">
         <StatCard
@@ -45,6 +59,12 @@ export function Home({ cases, onOpenCase }: HomeProps) {
           label="Casos en proceso"
           value={stats.inProgress}
           hint="Estado En proceso"
+          icon={<CircleDot size={18} />}
+        />
+        <StatCard
+          label="Sin analizar"
+          value={unanalyzed}
+          hint="Aún sin análisis de Gemini"
           icon={<CircleDot size={18} />}
         />
       </section>

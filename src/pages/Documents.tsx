@@ -97,7 +97,7 @@ export function Documents() {
     <div className="page page-wide">
       <PageHeader
         title="Conocimiento"
-        subtitle="Base de conocimiento de la empresa. Un documento real, consultado por el backend."
+        subtitle="Base de conocimiento utilizada por el centro de atención."
       />
 
       {loadError ? (

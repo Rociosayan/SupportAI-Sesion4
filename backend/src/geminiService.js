@@ -34,16 +34,31 @@ function readGeneratedText(response) {
     .trim()
 }
 
-export async function generateText(prompt) {
+export function generationRequest(prompt, options = {}) {
+  const request = {
+    model: GEMINI_MODEL,
+    contents: prompt,
+  }
+  if (typeof options.temperature === 'number') {
+    request.config = { temperature: options.temperature }
+  }
+  return request
+}
+
+export async function generateText(prompt, options = {}) {
   const apiKey = requireApiKey()
   const ai = new GoogleGenAI({ apiKey })
+  const request = generationRequest(prompt, options)
+
+  if (typeof options.temperature === 'number') {
+    console.log(
+      `[gemini] model=${request.model} temperature=${request.config.temperature}`,
+    )
+  }
 
   let response
   try {
-    response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: prompt,
-    })
+    response = await ai.models.generateContent(request)
   } catch (cause) {
     if (cause?.code === 'missing_api_key') {
       throw cause
